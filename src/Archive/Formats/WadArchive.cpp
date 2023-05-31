@@ -522,6 +522,15 @@ bool WadArchive::open(MemChunk& mc)
 	return true;
 }
 
+uint32_t padSize(uint32_t size)
+{
+	if (const uint32_t mod = size % 4; mod != 0)
+	{
+		size += 4 - mod;
+	}
+	return size;
+}
+
 // -----------------------------------------------------------------------------
 // Writes the wad archive to a MemChunk
 // Returns true if successful, false otherwise
@@ -542,7 +551,7 @@ bool WadArchive::write(MemChunk& mc, bool update)
 	{
 		entry = entryAt(l);
 		setEntryOffset(entry, dir_offset);
-		dir_offset += entry->size();
+		dir_offset += padSize(entry->size());
 	}
 
 	// Clear/init MemChunk
@@ -570,6 +579,11 @@ bool WadArchive::write(MemChunk& mc, bool update)
 	{
 		entry = entryAt(l);
 		mc.write(entry->rawData(), entry->size());
+		char zero = 0;
+		for (size_t i = 0; i < padSize(entry->size()) - entry->size(); i++)
+		{
+			mc.write(&zero, 1);
+		}
 	}
 
 	// Write the directory
@@ -626,7 +640,7 @@ bool WadArchive::write(string_view filename, bool update)
 	{
 		entry = entryAt(l);
 		setEntryOffset(entry, dir_offset);
-		dir_offset += entry->size();
+		dir_offset += padSize(entry->size());
 	}
 
 	// Setup wad type
@@ -647,6 +661,12 @@ bool WadArchive::write(string_view filename, bool update)
 		if (entry->size())
 		{
 			file.Write(entry->rawData(), entry->size());
+			char zero = 0;
+			for (size_t i = 0; i < padSize(entry->size()) - entry->size(); i++)
+			{
+				file.Write(&zero, 1);
+			}
+			
 		}
 	}
 
